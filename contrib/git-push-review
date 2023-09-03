@@ -76,8 +76,7 @@ def main(argv):
   opts = collections.defaultdict(list)
   is_hashtag = lambda x: x.startswith('#')
   opts['r'].extend(
-      (get_config('reviewer.' + r) or r)
-      for r in args.args if not is_hashtag(r))
+      get_config(f'reviewer.{r}') or r for r in args.args if not is_hashtag(r))
   opts['t'].extend(t[1:] for t in args.args if is_hashtag(t))
   if args.topic:
     opts['topic'].append(args.topic)
@@ -94,14 +93,18 @@ def main(argv):
       if v == True:
         opts_strs.append(k)
       elif v != False:
-        opts_strs.append('%s=%s' % (k, v))
+        opts_strs.append(f'{k}={v}')
 
   opts_str = ','.join(opts_strs)
   if opts_str:
-    opts_str = '%' + opts_str
+    opts_str = f'%{opts_str}'
 
-  git_args = ['git', 'push', args.remote,
-              'HEAD:refs/for/%s%s' % (args.branch, opts_str)]
+  git_args = [
+      'git',
+      'push',
+      args.remote,
+      f'HEAD:refs/for/{args.branch}{opts_str}',
+  ]
   if args.dry_run:
     print(' '.join(git_args))
     return 0

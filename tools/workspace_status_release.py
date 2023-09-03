@@ -44,7 +44,7 @@ def run(command):
     try:
         return subprocess.check_output(command).strip().decode("utf-8")
     except OSError as err:
-        print('could not invoke %s: %s' % (command[0], err), file=sys.stderr)
+        print(f'could not invoke {command[0]}: {err}', file=sys.stderr)
         sys.exit(1)
     except subprocess.CalledProcessError:
         # ignore "not a git repository error" to report unknown version
@@ -102,16 +102,16 @@ def revision(template=None):
 
         if len(parts) >= 3:
             # Match for v2.16.19
-            version_part = '.'.join(parts[0:3])
+            version_part = '.'.join(parts[:3])
             description = revision_with_match(version_part)
             if description:
                 return description
 
         if len(parts) >= 2:
-            version_part = '.'.join(parts[0:2])
+            version_part = '.'.join(parts[:2])
 
             # Match for v2.16.*
-            description = revision_with_match(version_part + '.', prefix=True)
+            description = revision_with_match(f'{version_part}.', prefix=True)
             if description:
                 return description
 
@@ -122,7 +122,7 @@ def revision(template=None):
 
             if template.startswith('v'):
                 # Match for stable-2.16 branches
-                branch = 'stable-' + version_part[1:]
+                branch = f'stable-{version_part[1:]}'
                 description = branch_with_match(branch)
                 if description:
                     return description
@@ -137,11 +137,7 @@ def revision(template=None):
 
     # Match for anything that looks like a version tag
     description = revision_with_match('v[0-9].', return_unmatched=True)
-    if description.startswith('v'):
-        return description
-
-    # Still no good tag, so we re-try without any matching
-    return revision_with_match()
+    return description if description.startswith('v') else revision_with_match()
 
 
 # prints the stamps for the current working directory
@@ -157,8 +153,7 @@ def print_stamps_for_cwd(name, template):
         # directory lacks own workspace_status_command, so we create a default
         # stamp
         v = revision(template)
-        print('STABLE_BUILD_%s_LABEL %s' % (name.upper(),
-                                            v if v else 'unknown'))
+        print(f"STABLE_BUILD_{name.upper()}_LABEL {v if v else 'unknown'}")
 
 
 # os.chdir is different from plain `cd` in shells in that it follows symlinks
@@ -180,7 +175,7 @@ def cd(absolute_path):
 def print_stamps():
     cd(ROOT)
     gerrit_version = revision()
-    print("STABLE_BUILD_GERRIT_LABEL %s" % gerrit_version)
+    print(f"STABLE_BUILD_GERRIT_LABEL {gerrit_version}")
     for kind in ['modules', 'plugins']:
         kind_dir = os.path.join(ROOT, kind)
         for d in os.listdir(kind_dir) if os.path.isdir(kind_dir) else []:

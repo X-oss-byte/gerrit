@@ -181,21 +181,21 @@ updates of mirror servers, or realtime backups.
         name = data.name
         safename = data.safename
         print_utf8()
-        print_utf8("[[%s]]" % safename)
+        print_utf8(f"[[{safename}]]")
         print_utf8(name)
         print_utf8()
         for p in data.packages:
             package_notice = ""
-            if p.licensed_files.kind == "OnlySpecificFiles":
-                package_notice = " - only the following file(s):"
-            elif p.licensed_files.kind == "AllFilesExceptSpecific":
+            if p.licensed_files.kind == "AllFilesExceptSpecific":
                 package_notice = " - except the following file(s):"
 
-            print_utf8("* " + get_package_display_name(p) + package_notice)
+            elif p.licensed_files.kind == "OnlySpecificFiles":
+                package_notice = " - only the following file(s):"
+            print_utf8(f"* {get_package_display_name(p)}{package_notice}")
             for file in p.licensed_files.files:
-                print_utf8("** " + file)
+                print_utf8(f"** {file}")
         print_utf8()
-        print_utf8("[[%s_license]]" % safename)
+        print_utf8(f"[[{safename}_license]]")
         print_utf8("----")
         license_text = data.license_text
         print_utf8(data.license_text.rstrip("\r\n"))
@@ -247,14 +247,14 @@ def get_licensed_files(json_licensed_file_dict):
     kind = json_licensed_file_dict["kind"]
     if kind == "AllFiles":
         return LicensedFiles(kind="All", files=[])
-    if kind == "OnlySpecificFiles" or kind == "AllFilesExceptSpecific":
+    if kind in ["OnlySpecificFiles", "AllFilesExceptSpecific"]:
         return LicensedFiles(kind=kind, files=sorted(json_licensed_file_dict["files"]))
     raise Exception("Invalid licensed files kind: %s".format(kind))
 
 def get_package_display_name(package):
     """Returns a human-readable name of package with optional version"""
     if package.version:
-        return package.name + " - " + package.version
+        return f"{package.name} - {package.version}"
     else:
         return package.name
 
@@ -273,10 +273,10 @@ def can_merge_packages(package_info_list):
         False otherwise
     """
     first = package_info_list[0]
-    for package in package_info_list:
-        if package.licensed_files != first.licensed_files:
-            return False
-    return True
+    return all(
+        package.licensed_files == first.licensed_files
+        for package in package_info_list
+    )
 
 
 def remove_duplicated_packages(package_info_list):
@@ -297,7 +297,7 @@ def remove_duplicated_packages(package_info_list):
         name_to_package[package.name].append(package)
 
     result = []
-    for package_name, packages in name_to_package.items():
+    for packages in name_to_package.values():
         if can_merge_packages(packages):
             package = packages[0]
             result.append(PackageInfo(name=package.name, version=None,

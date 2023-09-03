@@ -25,11 +25,13 @@ MAIN = '//tools/eclipse:classpath'
 AUTO = '//lib/auto:auto-value'
 
 def JRE(java_vers = '11'):
-    return '/'.join([
-        'org.eclipse.jdt.launching.JRE_CONTAINER',
-        'org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType',
-        "JavaSE-%s" % java_vers,
-    ])
+    return '/'.join(
+        [
+            'org.eclipse.jdt.launching.JRE_CONTAINER',
+            'org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType',
+            f"JavaSE-{java_vers}",
+        ]
+    )
 
 # Map of targets to corresponding classpath collector rules
 cp_targets = {
@@ -65,7 +67,7 @@ def find_bazel():
             return subprocess.check_output(
                 ['which', args.bazel_exe]).strip().decode('UTF-8')
         except subprocess.CalledProcessError:
-            print('Bazel command: %s not found' % args.bazel_exe, file=sys.stderr)
+            print(f'Bazel command: {args.bazel_exe} not found', file=sys.stderr)
             sys.exit(1)
     try:
         return subprocess.check_output(
@@ -96,8 +98,12 @@ def _build_bazel_cmd(*args):
             build = True
         cmd.append(arg)
     if custom_java:
-        cmd.append('--host_java_toolchain=@bazel_tools//tools/jdk:toolchain_java%s' % custom_java)
-        cmd.append('--java_toolchain=@bazel_tools//tools/jdk:toolchain_java%s' % custom_java)
+        cmd.append(
+            f'--host_java_toolchain=@bazel_tools//tools/jdk:toolchain_java{custom_java}'
+        )
+        cmd.append(
+            f'--java_toolchain=@bazel_tools//tools/jdk:toolchain_java{custom_java}'
+        )
     return cmd
 
 
@@ -121,8 +127,7 @@ def _query_classpath(target):
     except subprocess.CalledProcessError:
         exit(1)
     name = 'bazel-bin/tools/eclipse/' + t.split(':')[1] + '.runtime_classpath'
-    deps = [line.rstrip('\n') for line in open(name)]
-    return deps
+    return [line.rstrip('\n') for line in open(name)]
 
 
 def gen_project(name='gerrit', root=ROOT):
@@ -267,20 +272,20 @@ def gen_classpath(ext):
             if args.plugins:
                 plugins.add(s)
                 continue
-            out = 'eclipse-out/' + s
+            out = f'eclipse-out/{s}'
 
         p = os.path.join(s, 'java')
         if os.path.exists(p):
-            classpathentry('src', p, out=out + '/main')
+            classpathentry('src', p, out=f'{out}/main')
             p = os.path.join(s, 'javatests')
             if os.path.exists(p):
-                classpathentry('src', p, out=out + '/test')
+                classpathentry('src', p, out=f'{out}/test')
             continue
 
         for env in ['main', 'test']:
             o = None
             if out:
-                o = out + '/' + env
+                o = f'{out}/{env}'
             elif env == 'test':
                 o = 'eclipse-out/test'
 
@@ -296,7 +301,7 @@ def gen_classpath(ext):
             if m:
                 prefix = m.group(1)
                 suffix = m.group(2)
-                p = os.path.join(prefix, "jar", "%s-src.jar" % suffix)
+                p = os.path.join(prefix, "jar", f"{suffix}-src.jar")
                 if os.path.exists(p):
                     s = p
             if args.plugins:
@@ -326,8 +331,7 @@ def gen_classpath(ext):
                 gen_project(plugin.replace('plugins/', ""), plugindir)
                 gen_plugin_classpath(plugindir)
             except (IOError, OSError) as err:
-                print('error generating project for %s: %s' % (plugin, err),
-                      file=sys.stderr)
+                print(f'error generating project for {plugin}: {err}', file=sys.stderr)
 
 
 def gen_factorypath(ext):

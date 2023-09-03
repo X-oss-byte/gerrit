@@ -32,23 +32,23 @@ def main():
                                     ['change=', 'project=', 'branch=',
                                      'commit=', 'patchset='])
     except getopt.GetoptError as err:
-        print('Error: %s' % (err))
+        print(f'Error: {err}')
         usage()
         sys.exit(-1)
 
     for arg, value in opts:
-        if arg == '--change':
-            change = value
-        elif arg == '--project':
-            project = value
-        elif arg == '--branch':
+        if arg == '--branch':
             branch = value
+        elif arg == '--change':
+            change = value
         elif arg == '--commit':
             commit = value
         elif arg == '--patchset':
             patchset = value
+        elif arg == '--project':
+            project = value
         else:
-            print('Error: option %s not recognized' % (arg))
+            print(f'Error: option {arg} not recognized')
             usage()
             sys.exit(-1)
 
@@ -56,7 +56,7 @@ def main():
         usage()
         sys.exit(-1)
 
-    command = 'git cat-file commit %s' % (commit)
+    command = f'git cat-file commit {commit}'
     status, output = subprocess.getstatusoutput(command)
 
     if status != 0:
@@ -82,8 +82,9 @@ def main():
 
 def usage():
     print('Usage:\n')
-    print(sys.argv[0] + ' --change <change id> --project <project name> '
-          + '--branch <branch> --commit <sha1> --patchset <patchset id>')
+    print(
+        f'{sys.argv[0]} --change <change id> --project <project name> --branch <branch> --commit <sha1> --patchset <patchset id>'
+    )
 
 
 def fail(commit, message):
@@ -103,10 +104,7 @@ def passes(commit):
 def _shell_escape(x):
     s = ''
     for c in x:
-        if c in '\n':
-            s = s + '\\\"$\'\\n\'\\\"'
-        else:
-            s = s + c
+        s = s + '\\\"$\'\\n\'\\\"' if c in '\n' else s + c
     return s
 
 
