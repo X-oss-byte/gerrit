@@ -32,11 +32,10 @@ import tempfile
 
 
 def is_bundled(tar):
-    # No entries for directories, so scan for a matching prefix.
-    for entry in tar.getmembers():
-        if entry.name.startswith('package/node_modules/'):
-            return True
-    return False
+    return any(
+        entry.name.startswith('package/node_modules/')
+        for entry in tar.getmembers()
+    )
 
 
 def bundle_dependencies():
@@ -49,12 +48,12 @@ def bundle_dependencies():
 
 def main(args):
     if len(args) != 2:
-        print('Usage: %s <package> <version>' % sys.argv[0], file=sys.stderr)
+        print(f'Usage: {sys.argv[0]} <package> <version>', file=sys.stderr)
         return 1
 
     name, version = args
-    filename = '%s-%s.tgz' % (name, version)
-    url = 'https://registry.npmjs.org/%s/-/%s' % (name, filename)
+    filename = f'{name}-{version}.tgz'
+    url = f'https://registry.npmjs.org/{name}/-/{filename}'
 
     tmpdir = tempfile.mkdtemp()
     tgz = os.path.join(tmpdir, filename)
@@ -63,7 +62,7 @@ def main(args):
     subprocess.check_call(['curl', '--proxy-anyauth', '-ksfo', tgz, url])
     with tarfile.open(tgz, 'r:gz') as tar:
         if is_bundled(tar):
-            print('%s already has bundled node_modules' % filename)
+            print(f'{filename} already has bundled node_modules')
             return 1
         tar.extractall(path=tmpdir)
 

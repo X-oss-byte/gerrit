@@ -36,31 +36,26 @@ root = path.abspath(__file__)
 while not path.exists(path.join(root, 'WORKSPACE')):
     root = path.dirname(root)
 
-if 'install' == args.a:
-    cmd = [
-        'mvn',
-        'install:install-file',
-        '-Dversion=%s' % args.v,
-    ]
-elif 'deploy' == args.a:
+if args.a == 'install':
+    cmd = ['mvn', 'install:install-file', f'-Dversion={args.v}']
+elif args.a == 'deploy':
     cmd = [
         'mvn',
         'gpg:sign-and-deploy-file',
-        '-Dversion=%s' % args.v,
-        '-DrepositoryId=%s' % args.repository,
-        '-Durl=%s' % args.url,
+        f'-Dversion={args.v}',
+        f'-DrepositoryId={args.repository}',
+        f'-Durl={args.url}',
     ]
 else:
-    print("unknown action -a %s" % args.a, file=stderr)
+    print(f"unknown action -a {args.a}", file=stderr)
     exit(1)
 
 for spec in args.s:
     artifact, packaging_type, src = spec.split(':')
     exe = cmd + [
-        '-DpomFile=%s' % path.join(root, 'tools', 'maven',
-                                   '%s_pom.xml' % artifact),
-        '-Dpackaging=%s' % packaging_type,
-        '-Dfile=%s' % src,
+        f"-DpomFile={path.join(root, 'tools', 'maven', f'{artifact}_pom.xml')}",
+        f'-Dpackaging={packaging_type}',
+        f'-Dfile={src}',
     ]
     try:
         if environ.get('VERBOSE'):
@@ -74,13 +69,10 @@ for spec in args.s:
         exit(1)
 
 
-out = stderr
-if args.o:
-    out = open(args.o, 'w')
-
+out = open(args.o, 'w') if args.o else stderr
 with out as fd:
     if args.repository:
-        print('Repository: %s' % args.repository, file=fd)
+        print(f'Repository: {args.repository}', file=fd)
     if args.url:
-        print('URL: %s' % args.url, file=fd)
-    print('Version: %s' % args.v, file=fd)
+        print(f'URL: {args.url}', file=fd)
+    print(f'Version: {args.v}', file=fd)

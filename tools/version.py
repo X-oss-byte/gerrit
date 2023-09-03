@@ -27,22 +27,20 @@ DEST_PATTERN = r'\g<1>%s\g<3>' % args.version
 
 def replace_in_file(filename, src_pattern):
     try:
-        f = open(filename, "r")
-        s = f.read()
-        f.close()
+        with open(filename, "r") as f:
+            s = f.read()
         s = re.sub(src_pattern, DEST_PATTERN, s)
-        f = open(filename, "w")
-        f.write(s)
-        f.close()
+        with open(filename, "w") as f:
+            f.write(s)
     except IOError as err:
-        print('error updating %s: %s' % (filename, err), file=sys.stderr)
+        print(f'error updating {filename}: {err}', file=sys.stderr)
 
 
 src_pattern = re.compile(r'^(\s*<version>)([-.\w]+)(</version>\s*)$',
                          re.MULTILINE)
 for project in ['gerrit-acceptance-framework', 'gerrit-extension-api',
                 'gerrit-plugin-api', 'gerrit-war']:
-    pom = os.path.join('tools', 'maven', '%s_pom.xml' % project)
+    pom = os.path.join('tools', 'maven', f'{project}_pom.xml')
     replace_in_file(pom, src_pattern)
 
 src_pattern = re.compile(r'^(GERRIT_VERSION = ")([-.\w]+)(")$', re.MULTILINE)

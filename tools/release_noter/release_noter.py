@@ -262,10 +262,7 @@ def set_component(commit, commits, cwd):
 
 
 def init_components():
-    components = dict()
-    for component in Components:
-        components[component] = []
-    return components
+    return {component: [] for component in Components}
 
 
 def link_subject(commit, gerrit, options, cwd):
@@ -279,7 +276,7 @@ def link_subject(commit, gerrit, options, cwd):
             change_address = f"{GERRIT_URL}/c/{plugin_wd.group(1)}/+/{change_number}"
         else:
             change_address = f"{GERRIT_URL}{CHANGE_URL}{change_number}"
-        short_sha1 = commit.sha1[0:7]
+        short_sha1 = commit.sha1[:7]
         commit.subject = f"[{short_sha1}]({change_address})\n  {commit.subject}"
 
 

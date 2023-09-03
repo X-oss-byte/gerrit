@@ -87,10 +87,10 @@ def _parse_options():
 def _chunker(iterable, chunksize):
     it = map(lambda s: s.strip(), iterable)
     while True:
-        chunk = list(islice(it, chunksize))
-        if not chunk:
+        if chunk := list(islice(it, chunksize)):
+            yield chunk
+        else:
             return
-        yield chunk
 
 
 class Reindexer:

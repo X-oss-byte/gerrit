@@ -141,9 +141,7 @@ LAST_NAMES = [
 def clean(json_string):
     # Strip JSON XSS Tag
     json_string = json_string.strip()
-    if json_string.startswith(")]}'"):
-        return json_string[5:]
-    return json_string
+    return json_string[5:] if json_string.startswith(")]}'") else json_string
 
 
 def basic_auth(user):
@@ -153,10 +151,15 @@ def basic_auth(user):
 def fetch_admin_group():
     global GROUP_ADMIN
     # Get admin group
-    r = json.loads(clean(requests.get(
-        BASE_URL + "groups/?suggest=ad&p=All-Projects",
-        headers=HEADERS,
-        auth=ADMIN_BASIC_AUTH).text))
+    r = json.loads(
+        clean(
+            requests.get(
+                f"{BASE_URL}groups/?suggest=ad&p=All-Projects",
+                headers=HEADERS,
+                auth=ADMIN_BASIC_AUTH,
+            ).text
+        )
+    )
     admin_group_name = list(r.keys())[0]
     GROUP_ADMIN = r[admin_group_name]
     GROUP_ADMIN["name"] = admin_group_name
@@ -173,31 +176,33 @@ def set_up():
     global TMP_PATH
     TMP_PATH = tempfile.mkdtemp()
     atexit.register(clean_up)
-    os.makedirs(TMP_PATH + "/ssh")
-    os.makedirs(TMP_PATH + "/repos")
+    os.makedirs(f"{TMP_PATH}/ssh")
+    os.makedirs(f"{TMP_PATH}/repos")
     fetch_admin_group()
 
 
 def get_random_users(num_users):
     users = random.sample([(f, l) for f in FIRST_NAMES for l in LAST_NAMES],
                           num_users)
-    names = []
-    for u in users:
-        names.append({"firstname": u[0],
-                      "lastname": u[1],
-                      "name": u[0] + " " + u[1],
-                      "username": u[0] + u[1],
-                      "email": u[0] + "." + u[1] + "@gerritcodereview.com",
-                      "http_password": "secret",
-                      "groups": []})
-    return names
+    return [
+        {
+            "firstname": u[0],
+            "lastname": u[1],
+            "name": f"{u[0]} {u[1]}",
+            "username": u[0] + u[1],
+            "email": f"{u[0]}.{u[1]}@gerritcodereview.com",
+            "http_password": "secret",
+            "groups": [],
+        }
+        for u in users
+    ]
 
 
 def generate_ssh_keys(gerrit_users):
     for user in gerrit_users:
-        key_file = TMP_PATH + "/ssh/" + user["username"] + ".key"
+        key_file = f"{TMP_PATH}/ssh/" + user["username"] + ".key"
         subprocess.check_output(["ssh-keygen", "-f", key_file, "-N", ""])
-        with open(key_file + ".pub", "r") as f:
+        with open(f"{key_file}.pub", "r") as f:
             user["ssh_key"] = f.read()
 
 
@@ -219,10 +224,12 @@ def create_gerrit_groups():
          "visible_to_all": False, "owner": GROUP_ADMIN["name"],
          "owner_id": GROUP_ADMIN["id"]}]
     for g in groups:
-        requests.put(BASE_URL + "groups/" + g["name"],
-                     json.dumps(g),
-                     headers=HEADERS,
-                     auth=ADMIN_BASIC_AUTH)
+        requests.put(
+            f"{BASE_URL}groups/" + g["name"],
+            json.dumps(g),
+            headers=HEADERS,
+            auth=ADMIN_BASIC_AUTH,
+        )
     return [g["name"] for g in groups]
 
 
@@ -241,19 +248,23 @@ def create_gerrit_projects(owner_groups):
          "branches": ["master"], "description": "some small scripts.",
          "owners": [owner_groups[3]], "create_empty_commit": True}]
     for p in projects:
-        requests.put(BASE_URL + "projects/" + p["name"],
-                     json.dumps(p),
-                     headers=HEADERS,
-                     auth=ADMIN_BASIC_AUTH)
+        requests.put(
+            f"{BASE_URL}projects/" + p["name"],
+            json.dumps(p),
+            headers=HEADERS,
+            auth=ADMIN_BASIC_AUTH,
+        )
     return [p["name"] for p in projects]
 
 
 def create_gerrit_users(gerrit_users):
     for user in gerrit_users:
-        requests.put(BASE_URL + "accounts/" + user["username"],
-                     json.dumps(user),
-                     headers=HEADERS,
-                     auth=ADMIN_BASIC_AUTH)
+        requests.put(
+            f"{BASE_URL}accounts/" + user["username"],
+            json.dumps(user),
+            headers=HEADERS,
+            auth=ADMIN_BASIC_AUTH,
+        )
 
 
 def create_change(user, project_name):
@@ -264,10 +275,12 @@ def create_change(user, project_name):
         "branch": "master",
         "status": "NEW",
     }
-    requests.post(BASE_URL + "changes/",
-                  json.dumps(change),
-                  headers=HEADERS,
-                  auth=basic_auth(user))
+    requests.post(
+        f"{BASE_URL}changes/",
+        json.dumps(change),
+        headers=HEADERS,
+        auth=basic_auth(user),
+    )
 
 
 def clean_up():
